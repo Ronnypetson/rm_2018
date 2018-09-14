@@ -1,4 +1,4 @@
-import vrep, time, cv2, math
+import vrep, time, cv2, math, localization
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,13 +16,15 @@ RAIO_ROBO = 0.455/2
 
 sala_atual = 1
 
-sala_1 = [[-5.9, 1.3], [-5.8, 3.0], [-4.4, 3.9], [-3.3, 4.2], [-2.1, 6.0],  [-2.2, 4.4], [-3.3, 4.2], [-4.4, 3.9], [-5.8, 4.5], [-5.9, 3.5], [-6.0,0.0]]
+sala_1 = [[-6.0, 0.0], [-6.0, 1.5], [-4.5, 2.0], [-4.5, 0.0], [-0.5, 0.0], [-0.5, 1.5], [2.0, 2.0], [3.0, 2.0], [3.5, 0.8], [4.0, 0.0], [4.0, -1.5], [3.0, -1.5], [3.0, -2.8], [1.0, -2.8], [1.0, -4.0], [-1.5, -4.0], [-1.5, -3.5], [-1.0, -3.5], [-2.0, -1.5]]
 
-sala_2 = [[-2.0,0.0], [0.0, 1.7], [1.3,1.7], [1.3, 3.8], [3.1,4.3], [4.5, 4.3], [4.5,6.2], [3.3,6.2], [3.1,4.3], [-0.5, 3.5], [1.8, 3.4]]
+#sala_1 = [[-5.9, 1.3], [-5.8, 3.0], [-4.4, 3.9], [-3.3, 4.2], [-2.1, 6.0],  [-2.2, 4.4], [-3.3, 4.2], [-4.4, 3.9], [-5.8, 4.5], [-5.9, 3.5], [-6.0,0.0]]
 
-sala_3 = [[1.2, 1.7], [3.2, 2.2], [3.7, 1.3], [3.6, -1.5], [2.8, -2.6], [0.8, -3.1], [0.6, -4.3], [-1.5, -4.2], [-1.3, -2.3]]
+#sala_2 = [[-2.0,0.0], [0.0, 1.5], [1.0,1.5], [1.0, 3.8], [3.1,4.3], [4.5, 4.3], [4.5,6.2], [3.5,6.2], [3.5,4.3], [-0.5, 4.3], [1.1, 4.3], [1.1, 3.0], [1.1, 2.0]]
 
-sala_4 = [[-3.3, -2.4], [-3.5, -4.5], [-6.2, -4.5], [-6.2, -1.6]]
+#sala_3 = [[1.5, 2.0], [3.0, 2.0], [3.5, 2.0], [3.5, 1.0], [4.0, -1.5], [2.0, -1.5], [3.0, -3.0], [3.3, -4.7], [-2.1, -4.7], [-1.0, -2.4], [-3.3, -2.4]]
+
+#sala_4 = [[-3.3, -4.5], [-6.0, -4.5], [-6.3, -1.5]]
 
 #sala_2 = [[-3.0, 0.0], [0.0, 0.0], [1.0, 1.5], [2.0, 2.0], [3.0, 1.0], [4.0, 2.0], [4.0, -1.0], [3.0, -2.0], [2.0, -2.5], [1.0, -3.0], [0.5, -3.5], [0.0, -2.0], [-3.0, -2.3]]
 
@@ -144,22 +146,43 @@ def virar(angulo):
 	print("Virando para o angulo ", angulo*180.0/math.pi, " graus")
 	#ang_inicial = get_ang_atual()
 	
-	if(get_ang_atual() < angulo):
-		v_Left = -0.5
-		v_Right = 0.5
-	else:
-		v_Left = 0.5
-		v_Right = -0.5
+	if(ciclo_trig(get_ang_atual()) > ciclo_trig(angulo)):
+		if(ciclo_trig(get_ang_atual()) - ciclo_trig(angulo) < math.pi):
+			#Virar direita
+			vel_esq = 0.5
+			vel_dir = -0.5
+		else:
+			#Virar esquerda
+			vel_esq = -0.5
+			vel_dir = 0.5
 		
-	while(abs(get_ang_atual() - angulo) > 0.01):
+	else:
+		if(ciclo_trig(angulo) - ciclo_trig(get_ang_atual()) < math.pi):
+			#Virar esquerda
+			vel_esq = -0.5
+			vel_dir = 0.5
+		else:
+			#Virar direita
+			vel_esq = 0.5
+			vel_dir = -0.5
+
+		
+	while(abs(ciclo_trig(get_ang_atual()) - ciclo_trig(angulo)) > 0.01):
 		#print abs(get_ang_atual() - angulo)
-		vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, v_Right, vrep.simx_opmode_streaming)
-		vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, v_Left, vrep.simx_opmode_streaming)
+		vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, vel_dir, vrep.simx_opmode_streaming)
+		vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, vel_esq, vrep.simx_opmode_streaming)
+		#Atualiza localizacao	
+		thetaDir = vrep.simxGetJointPosition(clientID, handle_motor_dir, vrep.simx_opmode_streaming)[1]
+		thetaEsq = vrep.simxGetJointPosition(clientID, handle_motor_esq, vrep.simx_opmode_streaming)[1]
+		localizacao.setAngulos(thetaDir, thetaEsq)
+
+def ciclo_trig(ang):
+	return (ang+2*math.pi)%(2*math.pi)
 
 def mover_para(x,y):
 	print("Movendo para ", x, ",", y)
-	print("Angulo: ", get_ang_atual())
-	time.sleep(1)
+	print("Angulo atual: ", get_ang_atual()*180.0/math.pi)
+	time.sleep(0.1)
 	vel = 2
 	ang_alvo = get_angulo_alvo(get_pos_atual()[0], get_pos_atual()[1], get_ang_atual(), x, y)
 	virar(ang_alvo)
@@ -170,7 +193,8 @@ def mover_para(x,y):
 
 		dist = ler_distancias(handle_sensores)
 		if(dist):
-			salva_dados(dist, get_pos_atual()[0], get_pos_atual()[1], get_ang_atual())
+			x_odom, y_odom = localizacao.getPosicao()
+			salva_dados(dist, get_pos_atual()[0], get_pos_atual()[1], x_odom, y_odom, get_ang_atual())
 		
 			if(dist[3] < 0.1):
 				vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, -vel, vrep.simx_opmode_streaming)
@@ -186,13 +210,17 @@ def mover_para(x,y):
 				vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, -vel, vrep.simx_opmode_streaming)
 			else:	
 				ang_alvo = get_angulo_alvo(get_pos_atual()[0], get_pos_atual()[1], get_ang_atual(), x, y)
-				if(abs(get_ang_atual() - ang_alvo) > 0.1):
+				if(abs(ciclo_trig(get_ang_atual()) - ciclo_trig(ang_alvo)) > 0.1):
 					#print(get_ang_atual())
 					if((ang_alvo > 0 and dist[7] > 1.0) or (ang_alvo < 0 and dist[0] > 1.0)):
 						virar(ang_alvo)
 															
 				vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, vel, vrep.simx_opmode_streaming)
 				vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, vel, vrep.simx_opmode_streaming)		
+				#Atualiza localizacao	
+				thetaDir = vrep.simxGetJointPosition(clientID, handle_motor_dir, vrep.simx_opmode_streaming)[1]
+				thetaEsq = vrep.simxGetJointPosition(clientID, handle_motor_esq, vrep.simx_opmode_streaming)[1]
+				localizacao.setAngulos(thetaDir, thetaEsq)
 				
 			if(abs(get_pos_atual()[0]-x) < 0.1 and abs(get_pos_atual()[1]-y) < 0.1):
 				chegou = True
@@ -215,24 +243,30 @@ pontos_y = []
 pontos = []
 trajetoria_x = []
 trajetoria_y = []
-
-def salva_dados(dist, x_robo, y_robo, ang_robo):
+odometria_x = []
+odometria_y = []
+def salva_dados(dist, x_robo, y_robo, x_odom, y_odom, ang_robo):
 	for i in range(len(dist)):
-		if(i == 0 or i == 2 or i == 5 or i == 7):
-			if(dist[i] < noDetectionDist):
-				x = x_robo + (dist[i] + RAIO_ROBO) * math.cos((ang_ultrassom[i]*math.pi/180) + ang_robo)
-				y = y_robo + (dist[i] + RAIO_ROBO) * math.sin((ang_ultrassom[i]*math.pi/180) + ang_robo)
-				if [x, y] not in pontos: 
-					pontos.append([x, y])
+		if(dist[i] < noDetectionDist):
+			x = x_robo + (dist[i] + RAIO_ROBO) * math.cos((ang_ultrassom[i]*math.pi/180) + ang_robo)
+			y = y_robo + (dist[i] + RAIO_ROBO) * math.sin((ang_ultrassom[i]*math.pi/180) + ang_robo)
+			if [x, y] not in pontos: 
+				pontos.append([x, y])
 	trajetoria_x.append(x_robo)
 	trajetoria_y.append(y_robo)
+	odometria_x.append(x_odom)
+	odometria_y.append(y_odom)
 		
 def plotar_mapa():
 	plt.scatter(pontos_x, pontos_y, s=0.5)
-	plt.plot(trajetoria_x, trajetoria_y, 'r--')
+	line1, = plt.plot(odometria_x, odometria_y, 'r--', label='Odometria')
+	line2, = plt.plot(trajetoria_x, trajetoria_y, 'g', label='Ground-truth')
+	plt.legend(handles=[line1, line2])
 	plt.show()
 			
 display = False
+localizacao = localization.localizacao()
+localization.iniciar(clientID)
 #------------------------------ Loop principal ----------------------------
 while vrep.simxGetConnectionId(clientID) != -1:
 
@@ -240,30 +274,29 @@ while vrep.simxGetConnectionId(clientID) != -1:
 	if(sala_atual == 1):
 		for pos in sala_1:
 			mover_para(pos[0], pos[1])
-	elif(sala_atual == 2):
-		for pos in sala_2:
-			mover_para(pos[0], pos[1])
-	elif(sala_atual == 3):
-		for pos in sala_3:
-			mover_para(pos[0], pos[1])
-	elif(sala_atual == 4):
-			for pos in sala_4:
-				mover_para(pos[0], pos[1])
-			
+			"""
+			elif(sala_atual == 2):
+				for pos in sala_2:
+					mover_para(pos[0], pos[1])
+			elif(sala_atual == 3):
+				for pos in sala_3:
+					mover_para(pos[0], pos[1])
+			elif(sala_atual == 4):
+					for pos in sala_4:
+						mover_para(pos[0], pos[1])
+			"""		
+		vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, 0, vrep.simx_opmode_streaming)
+		vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, 0, vrep.simx_opmode_streaming)	
+		print "Fim"
+		for p in pontos:
+			pontos_x.append(p[0])
+			pontos_y.append(p[1])
+		plotar_mapa()			
+
+		while(1):
 			vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, 0, vrep.simx_opmode_streaming)
 			vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, 0, vrep.simx_opmode_streaming)	
-			print "Fim"
-			for p in pontos:
-				pontos_x.append(p[0])
-				pontos_y.append(p[1])
-			plotar_mapa()			
-			
-			while(1):
-				vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, 0, vrep.simx_opmode_streaming)
-				vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, 0, vrep.simx_opmode_streaming)	
-
+	
 			
 	sala_atual+=1
 
-
-	

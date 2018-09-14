@@ -1,4 +1,4 @@
-import vrep, time, cv2, math
+import vrep, time, cv2, math, localization
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -143,7 +143,11 @@ def virar(angulo):
 		#print abs(get_ang_atual() - angulo)
 		vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, v_Right, vrep.simx_opmode_streaming)
 		vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, v_Left, vrep.simx_opmode_streaming)
-
+		#Atualiza localizacao	
+		thetaDir = vrep.simxGetJointPosition(clientID, handle_motor_dir, vrep.simx_opmode_streaming)[1]
+		thetaEsq = vrep.simxGetJointPosition(clientID, handle_motor_esq, vrep.simx_opmode_streaming)[1]
+		localizacao.setAngulos(thetaDir, thetaEsq)
+		
 def mover_para(x,y):
 	print("Movendo para ", x, ",", y)
 	print("Angulo: ", get_ang_atual())
@@ -157,8 +161,10 @@ def mover_para(x,y):
 	while(not chegou):
 
 		dist = ler_distancias(handle_sensores)
+		
 		if(dist):
-			salva_dados(dist, get_pos_atual()[0], get_pos_atual()[1], get_ang_atual())
+			x_odom, y_odom = localizacao.getPosicao()
+			salva_dados(dist, get_pos_atual()[0], get_pos_atual()[1], x_odom, y_odom, get_ang_atual())
 		
 			if(dist[3] < 0.1):
 				vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, -vel, vrep.simx_opmode_streaming)
@@ -181,6 +187,11 @@ def mover_para(x,y):
 															
 				vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, vel, vrep.simx_opmode_streaming)
 				vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, vel, vrep.simx_opmode_streaming)		
+			
+			#Atualiza localizacao	
+			thetaDir = vrep.simxGetJointPosition(clientID, handle_motor_dir, vrep.simx_opmode_streaming)[1]
+			thetaEsq = vrep.simxGetJointPosition(clientID, handle_motor_esq, vrep.simx_opmode_streaming)[1]
+			localizacao.setAngulos(thetaDir, thetaEsq)
 				
 			if(abs(get_pos_atual()[0]-x) < 0.1 and abs(get_pos_atual()[1]-y) < 0.1):
 				chegou = True
@@ -195,8 +206,9 @@ pontos_y = []
 pontos = []
 trajetoria_x = []
 trajetoria_y = []
-
-def salva_dados(dist, x_robo, y_robo, ang_robo):
+odometria_x = []
+odometria_y = []
+def salva_dados(dist, x_robo, y_robo, x_odom, y_odom, ang_robo):
 	for i in range(len(dist)):
 		if(i == 0 or i == 2 or i == 5 or i == 7):
 			if(dist[i] < noDetectionDist):
@@ -206,17 +218,22 @@ def salva_dados(dist, x_robo, y_robo, ang_robo):
 					pontos.append([x, y])
 	trajetoria_x.append(x_robo)
 	trajetoria_y.append(y_robo)
+	odometria_x.append(x_odom)
+	odometria_y.append(y_odom)
+	
 		
 def plotar_mapa():
 	plt.scatter(pontos_x, pontos_y, s=0.5)
-	plt.plot(trajetoria_x, trajetoria_y, 'r--')
+	plt.plot(odometria_x, odometria_y, 'r--', trajetoria_x, trajetoria_y, 'g')
 	plt.show()
 			
 display = False
+
+localizacao = localization.localizacao()
+localization.iniciar(clientID)
 #------------------------------ Loop principal ----------------------------
 while vrep.simxGetConnectionId(clientID) != -1:
 
-	
 	if(sala_atual == 2):
          flag=True
          for pos in sala_2:
