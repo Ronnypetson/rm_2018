@@ -256,8 +256,8 @@ odometria_y = []
 def salva_dados(dist, x_robo, y_robo, x_odom, y_odom, ang_robo):
 	for i in range(len(dist)):
 		if(dist[i] < noDetectionDist):
-			x = x_robo + (dist[i] + RAIO_ROBO) * math.cos(((180.0/i)*math.pi/180) + ang_robo) # ang_ultrassom[i]
-			y = y_robo + (dist[i] + RAIO_ROBO) * math.sin(((180.0/i)*math.pi/180) + ang_robo) # ang_ultrassom[i]
+			x = x_robo + (dist[i] + RAIO_ROBO) * math.cos(((180.0/(i+1))*math.pi/180) + ang_robo) # ang_ultrassom[i]
+			y = y_robo + (dist[i] + RAIO_ROBO) * math.sin(((180.0/(i+1))*math.pi/180) + ang_robo) # ang_ultrassom[i]
 			if [x, y] not in pontos: 
 				pontos.append([x, y])
 	trajetoria_x.append(x_robo)
