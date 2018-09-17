@@ -1,7 +1,7 @@
-import math
+import math, time, vrep
+import numpy as np
 from threading import Thread
-import time
-import vrep
+
 global thetaDir, thetaEsq, thetaDirAnt, thetaEsqAnt, xpos, ypos, theta, Dr, Dl
 
 class localizacao(Thread):
@@ -18,7 +18,7 @@ class localizacao(Thread):
 		Dr = Dl = 0
 		self.largura = 0.415-0.08
 		self.raio_roda = 0.195/2		
-		self.intervalo = 1.0/1000.0  #segundos
+		self.intervalo = 50.0/1000.0  #segundos
 
 	def setAngulos (self, thetaD, thetaE):
 		global thetaDir, thetaEsq
@@ -26,7 +26,20 @@ class localizacao(Thread):
 		thetaEsq = thetaE
 		#print str(thetaDir)+", "+str(thetaEsq)
 		#print "Novas velocidades: "+str(self.velDir)+" "+str(self.velEsq)
-
+	
+	def get_gyro_data(self):
+		gyro_x = vrep.simxGetFloatSignal(clientID,'gyroX', vrep.simx_opmode_streaming)
+		gyro_y = vrep.simxGetFloatSignal(clientID,'gyroY', vrep.simx_opmode_streaming)
+		gyro_z = vrep.simxGetFloatSignal(clientID,'gyroZ', vrep.simx_opmode_streaming)
+		data = [gyro_x, gyro_y, gyro_z]
+		
+		while(np.isnan(data).any()):
+			gyro_x = vrep.simxGetFloatSignal(clientID,'gyroX', vrep.simx_opmode_streaming)
+			gyro_y = vrep.simxGetFloatSignal(clientID,'gyroY', vrep.simx_opmode_streaming)
+			gyro_z = vrep.simxGetFloatSignal(clientID,'gyroZ', vrep.simx_opmode_streaming)
+			data = [gyro_x, gyro_y, gyro_z]
+		return data
+		
 	def update(self):
 		global thetaDir, thetaEsq, thetaDirAnt, thetaEsqAnt, xpos, ypos, theta, Dr, Dl
 
@@ -57,11 +70,17 @@ class localizacao(Thread):
 		xpos = xpos+Dc*math.cos(theta)
 		ypos = ypos+Dc*math.sin(theta)
 		theta = theta + (Dr-Dl)/self.largura
-			
+		
+		#theta = theta + (self.get_gyro_data()[2][1])*self.intervalo
+		#if abs(theta) > 2*math.pi:
+		#	theta = 0
+		#print self.get_gyro_data()[2][1]	
+		#print xpos, ypos, theta*180/math.pi
+		
 		thetaDirAnt = thetaDir
 		thetaEsqAnt = thetaEsq
 
-
+	
 	def run(self):
 		while vrep.simxGetConnectionId(clientID) != -1:
 			self.update()

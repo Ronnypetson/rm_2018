@@ -38,6 +38,8 @@ ang_ultrassom = [90, 50, 30, 10, -10, -30, -50, -90]
 
 
 #---------------------Conecta no servidor---------------------------------
+
+
 clientID = vrep.simxStart(server_IP, server_port, True, True, 2000, 5)
 
 if (clientID!=-1):
