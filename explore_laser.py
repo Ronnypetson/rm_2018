@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 
 server_IP = "127.0.0.1"
 server_port = 25000
+nome_sensor = []
+handle_sensores = []
 braitenbergL=[-0.2,-0.4,-0.6,-0.8,-1.0,-1.2,-1.4,-1.6]
 braitenbergR=[-1.6,-1.4,-1.2,-1.0,-0.8,-0.6,-0.4,-0.2]
 detect = [0,0,0,0,0,0,0,0]
@@ -14,7 +16,9 @@ RAIO_ROBO = 0.455/2
 
 sala_atual = 1
 
-sala_1 = [[-6.0, 0.0], [-6.0, 1.5], [-4.5, 2.0], [-4.5, 0.0], [-0.5, 0.0], [-0.5, 1.5], [2.0, 2.0], [3.0, 2.0], [3.5, 0.8], [4.0, 0.0], [4.0, -1.5], [3.0, -1.5], [3.0, -2.8], [1.0, -2.8], [1.0, -4.0], [-1.5, -4.0], [-1.5, -3.5], [-1.0, -3.5], [-2.0, -1.5]]
+sala_1 = [[-6.0, 0.0], [3.0, -1.0], [0.0, -3.0]]
+
+#sala_1 = [[-6.0, 0.0], [-6.0, 1.5], [-4.5, 2.0], [-4.5, 0.0], [-0.5, 0.0], [-0.5, 1.5], [2.0, 2.0], [3.0, 2.0], [3.5, 0.8], [4.0, 0.0], [4.0, -1.5], [3.0, -1.5], [3.0, -2.8], [1.0, -2.8], [1.0, -4.0], [-1.5, -4.0], [-1.5, -3.5], [-1.0, -3.5], [-2.0, -1.5]]
 
 #sala_1 = [[-5.9, 1.3], [-5.8, 3.0], [-4.4, 3.9], [-3.3, 4.2], [-2.1, 6.0],  [-2.2, 4.4], [-3.3, 4.2], [-4.4, 3.9], [-5.8, 4.5], [-5.9, 3.5], [-6.0,0.0]]
 
@@ -43,22 +47,23 @@ if (clientID!=-1):
 	
 
 #------------------------------Inicializa Sensores ----------------------------
-	nome_sensor = "Hokuyo_URG_04LX_UG01_ROS"
 
-	res, handle_sensor = vrep.simxGetObjectHandle(clientID, nome_sensor, vrep.simx_opmode_oneshot_wait)
+	for i in range(0,8):
+		nome_sensor.append("Pioneer_p3dx_ultrasonicSensor" + str(i+1))
 
+		res, handle = vrep.simxGetObjectHandle(clientID, nome_sensor[i], vrep.simx_opmode_oneshot_wait)
+
+		if(res != vrep.simx_return_ok):
+			print (nome_sensor[i] + " nao conectado")
+		else:
+			print (nome_sensor[i] + " conectado")
+			handle_sensores.append(handle)
+	
+	res, laser_handle = vrep.simxGetObjectHandle(clientID, "fastHokuyo", vrep.simx_opmode_oneshot_wait)
 	if(res != vrep.simx_return_ok):
-		print (nome_sensor + " nao conectado")
+		print ("laser nao conectado")
 	else:
-		print (nome_sensor + " conectado")
-
-	nome_laser = nome_sensor + '_laser'
-
-	res, laser_handle = vrep.simxGetObjectHandle(clientID, nome_laser, vrep.simx_opmode_oneshot_wait)
-	if(res != vrep.simx_return_ok):
-		print (nome_laser + " nao conectado")
-	else:
-		print (nome_laser + " conectado")
+		print ("laser conectado")
 		#laser_handle = handle
 
 	#Vision sensor		
@@ -85,16 +90,16 @@ if (clientID!=-1):
 else:
 	print("Servidor desconectado!")
 
-
 first_call = True
 def ler_laser():
 	global first_call
-	code,laser_values=vrep.simxGetStringSignal(clientID,"rangeDat"+nome_sensor, \
-													vrep.simx_opmode_streaming if first_call else vrep.simx_opmode_buffer)
-	first_call = False
+	code, laser_values = vrep.simxGetStringSignal(clientID,"measuredDataAtThisTime", vrep.simx_opmode_streaming if first_call else vrep.simx_opmode_buffer)
 	laser_values = vrep.simxUnpackFloats(laser_values)
-	print(code,laser_values)
-	return code, laser_values
+	first_call = False
+	while(code != vrep.simx_return_ok):
+		code, laser_values = vrep.simxGetStringSignal(clientID,"measuredDataAtThisTime", vrep.simx_opmode_buffer)
+		laser_values = vrep.simxUnpackFloats(laser_values)
+	return laser_values
 
 def ler_distancias(sensorHandle):
 
@@ -103,28 +108,61 @@ def ler_distancias(sensorHandle):
 		parametro: handle dos sensores
 		retorna:   distancias em metros
 	"""
+	distancias = []
 	
-	returnCode, distancias = ler_laser()
-
-	if (returnCode != vrep.simx_return_ok):
-		#print ("Erro no sensor "+str(i+1))
-		time.sleep(0.1)
+	for sensor in sensorHandle:
+		returnCode, detectionState, detectedPoint,_,_ = vrep.simxReadProximitySensor(clientID, sensor, vrep.simx_opmode_streaming)
+		if (returnCode == vrep.simx_return_ok):
+			if(detectionState != 0):
+				distancias.append(round(detectedPoint[2],5))
+			else:
+				#Muito distante
+				distancias.append(noDetectionDist)
+		else:
+			#print ("Erro no sensor "+str(i+1))
+			time.sleep(0.1)
 	return distancias
 
-def braitenberg(dist, vel):
-	vLeft = vRight = vel
-	for i in range(len(dist)):
-		if(dist[i] < noDetectionDist):
-			detect[i] = 1 - ((dist[i]-maxDetectionDist)/(noDetectionDist-maxDetectionDist))
-		else:
-			detect[i]=0
-		
-		for i in range(8):
-			vLeft = vLeft + braitenbergL[i]*detect[i]
-			vRight = vRight+ braitenbergR[i]*detect[i]
+def local2global(x_local, y_local, x, y, theta):
+	T_trans = [[1, 0, x], 
+						 [0, 1, y], 
+						 [0, 0, 1]]
+	T_rot = [[math.cos(theta), -math.sin(theta), 0], 
+					 [math.sin(theta), math.cos(theta),  0], 
+					 [0,									 0, 					 1]]
+	T = np.matmul(T_trans, T_rot)
+
+	pos = np.matmul(T, np.transpose([x_local, y_local,1.0]))
+	return pos
+
+
+def convert_laser(dist):
+	cont = 0
+	x_global = []
+	y_global = []
 	
-		vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, vLeft, vrep.simx_opmode_streaming)
-		vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, vRight, vrep.simx_opmode_streaming)
+	pos_sensor=get_pos_atual(laser_handle)
+	ang_sensor=get_ang_atual(laser_handle)
+	x=[]
+	y=[]
+	z=[]
+	for value in dist:
+		if(cont==0):
+			x.append(value)
+		elif(cont==1):
+			y.append(value)
+		elif(cont==2):
+			z.append(value)
+			cont = -1
+		cont+=1
+	
+	for i in range(len(x)):
+		if isinstance(x[i], float) and isinstance(y[i], float):
+			pos = local2global(x[i], y[i], pos_sensor[0], pos_sensor[1], ciclo_trig(ang_sensor))
+			x_global.append(pos[0])
+			y_global.append(pos[1])
+	return [x_global, y_global]
+	
 
 def get_angulo_alvo(x_robo, y_robo, ang_robo, x_alvo, y_alvo):
 	tolerancia = 0.2
@@ -135,27 +173,27 @@ def get_angulo_alvo(x_robo, y_robo, ang_robo, x_alvo, y_alvo):
 	
 	return ang_alvo
 
-def get_pos_atual():
-	code, position = vrep.simxGetObjectPosition(clientID, handle_robo, -1, vrep.simx_opmode_streaming)
+def get_pos_atual(handle):
+	code, position = vrep.simxGetObjectPosition(clientID, handle, -1, vrep.simx_opmode_streaming)
 	
 	while(code != vrep.simx_return_ok):
-		code, position = vrep.simxGetObjectPosition(clientID, handle_robo, -1, vrep.simx_opmode_streaming)
+		code, position = vrep.simxGetObjectPosition(clientID, handle, -1, vrep.simx_opmode_streaming)
 
 	return position
 
-def get_ang_atual():
-	code, ang = vrep.simxGetObjectOrientation(clientID, handle_robo, -1, vrep.simx_opmode_streaming)
+def get_ang_atual(handle):
+	code, ang = vrep.simxGetObjectOrientation(clientID, handle, -1, vrep.simx_opmode_streaming)
 	while(code != vrep.simx_return_ok):
-		code, ang = vrep.simxGetObjectOrientation(clientID, handle_robo, -1, vrep.simx_opmode_streaming)
+		code, ang = vrep.simxGetObjectOrientation(clientID, handle, -1, vrep.simx_opmode_streaming)
 		
 	return ang[2]
 
 def virar(angulo):
 	print("Virando para o angulo ", angulo*180.0/math.pi, " graus")
-	#ang_inicial = get_ang_atual()
+	#ang_inicial = get_ang_atual(handle_robo)
 	
-	if(ciclo_trig(get_ang_atual()) > ciclo_trig(angulo)):
-		if(ciclo_trig(get_ang_atual()) - ciclo_trig(angulo) < math.pi):
+	if(ciclo_trig(get_ang_atual(handle_robo)) > ciclo_trig(angulo)):
+		if(ciclo_trig(get_ang_atual(handle_robo)) - ciclo_trig(angulo) < math.pi):
 			#Virar direita
 			vel_esq = 0.5
 			vel_dir = -0.5
@@ -165,7 +203,7 @@ def virar(angulo):
 			vel_dir = 0.5
 		
 	else:
-		if(ciclo_trig(angulo) - ciclo_trig(get_ang_atual()) < math.pi):
+		if(ciclo_trig(angulo) - ciclo_trig(get_ang_atual(handle_robo)) < math.pi):
 			#Virar esquerda
 			vel_esq = -0.5
 			vel_dir = 0.5
@@ -175,8 +213,8 @@ def virar(angulo):
 			vel_dir = -0.5
 
 		
-	while(abs(ciclo_trig(get_ang_atual()) - ciclo_trig(angulo)) > 0.01):
-		#print abs(get_ang_atual() - angulo)
+	while(abs(ciclo_trig(get_ang_atual(handle_robo)) - ciclo_trig(angulo)) > 0.01):
+		#print abs(get_ang_atual(handle_robo) - angulo)
 		vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, vel_dir, vrep.simx_opmode_streaming)
 		vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, vel_esq, vrep.simx_opmode_streaming)
 		#Atualiza localizacao	
@@ -189,21 +227,23 @@ def ciclo_trig(ang):
 
 def mover_para(x,y):
 	print("Movendo para ", x, ",", y)
-	print("Angulo atual: ", get_ang_atual()*180.0/math.pi)
+	print("Angulo atual: ", get_ang_atual(handle_robo)*180.0/math.pi)
 	time.sleep(0.1)
 	vel = 2
-	ang_alvo = get_angulo_alvo(get_pos_atual()[0], get_pos_atual()[1], get_ang_atual(), x, y)
+	ang_alvo = get_angulo_alvo(get_pos_atual(handle_robo)[0], get_pos_atual(handle_robo)[1], get_ang_atual(handle_robo), x, y)
 	virar(ang_alvo)
 	
 	chegou = False
 	
 	while(not chegou):
-
-		dist = ler_distancias(handle_sensor)
+		
+		dist = ler_distancias(handle_sensores)
 		if(dist):
 			x_odom, y_odom = localizacao.getPosicao()
-			salva_dados(dist, get_pos_atual()[0], get_pos_atual()[1], x_odom, y_odom, get_ang_atual())
-		
+			laser_raw = ler_laser()
+			laser = convert_laser(laser_raw)
+			salva_dados(laser[0], laser[1], get_pos_atual(handle_robo)[0], get_pos_atual(handle_robo)[1], x_odom, y_odom)
+			
 			if(dist[3] < 0.1):
 				vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, -vel, vrep.simx_opmode_streaming)
 				vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, vel, vrep.simx_opmode_streaming)
@@ -217,9 +257,9 @@ def mover_para(x,y):
 				vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, vel, vrep.simx_opmode_streaming)
 				vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, -vel, vrep.simx_opmode_streaming)
 			else:	
-				ang_alvo = get_angulo_alvo(get_pos_atual()[0], get_pos_atual()[1], get_ang_atual(), x, y)
-				if(abs(ciclo_trig(get_ang_atual()) - ciclo_trig(ang_alvo)) > 0.1):
-					#print(get_ang_atual())
+				ang_alvo = get_angulo_alvo(get_pos_atual(handle_robo)[0], get_pos_atual(handle_robo)[1], get_ang_atual(handle_robo), x, y)
+				if(abs(ciclo_trig(get_ang_atual(handle_robo)) - ciclo_trig(ang_alvo)) > 0.1):
+					#print(get_ang_atual(handle_robo))
 					if((ang_alvo > 0 and dist[7] > 1.0) or (ang_alvo < 0 and dist[0] > 1.0)):
 						virar(ang_alvo)
 															
@@ -230,12 +270,12 @@ def mover_para(x,y):
 				thetaEsq = vrep.simxGetJointPosition(clientID, handle_motor_esq, vrep.simx_opmode_streaming)[1]
 				localizacao.setAngulos(thetaDir, thetaEsq)
 				
-			if(abs(get_pos_atual()[0]-x) < 0.1 and abs(get_pos_atual()[1]-y) < 0.1):
+			if(abs(get_pos_atual(handle_robo)[0]-x) < 0.1 and abs(get_pos_atual(handle_robo)[1]-y) < 0.1):
 				chegou = True
 				print "chegou"
 				
 			#else:
-			#	print str(get_pos_atual()[0]),",",str(get_pos_atual()[1])
+			#	print str(get_pos_atual(handle_robo)[0]),",",str(get_pos_atual(handle_robo)[1])
 
 
 # Python code to remove duplicate elements 
@@ -253,17 +293,15 @@ trajetoria_x = []
 trajetoria_y = []
 odometria_x = []
 odometria_y = []
-def salva_dados(dist, x_robo, y_robo, x_odom, y_odom, ang_robo):
-	for i in range(len(dist)):
-		if(dist[i] < noDetectionDist):
-			x = x_robo + (dist[i] + RAIO_ROBO) * math.cos(((180.0/(i+1))*math.pi/180) + ang_robo) # ang_ultrassom[i]
-			y = y_robo + (dist[i] + RAIO_ROBO) * math.sin(((180.0/(i+1))*math.pi/180) + ang_robo) # ang_ultrassom[i]
-			if [x, y] not in pontos: 
-				pontos.append([x, y])
+def salva_dados(x_laser, y_laser, x_robo, y_robo, x_odom, y_odom):
+	for i in range(len(x_laser)):
+		if [x_laser[i], y_laser[i]] not in pontos: 
+			pontos.append([x_laser[i], y_laser[i]])
 	trajetoria_x.append(x_robo)
 	trajetoria_y.append(y_robo)
 	odometria_x.append(x_odom)
 	odometria_y.append(y_odom)
+
 
 def plotar_mapa():
 	plt.scatter(pontos_x, pontos_y, s=0.5)
@@ -277,7 +315,7 @@ localizacao = localization.localizacao()
 localization.iniciar(clientID)
 #------------------------------ Loop principal ----------------------------
 while vrep.simxGetConnectionId(clientID) != -1:
-
+	#points = convert_laser(ler_laser())
 	
 	if(sala_atual == 1):
 		for pos in sala_1:
@@ -292,7 +330,7 @@ while vrep.simxGetConnectionId(clientID) != -1:
 			elif(sala_atual == 4):
 					for pos in sala_4:
 						mover_para(pos[0], pos[1])
-			"""		
+			"""
 		vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, 0, vrep.simx_opmode_streaming)
 		vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, 0, vrep.simx_opmode_streaming)	
 		print "Fim"
@@ -304,7 +342,6 @@ while vrep.simxGetConnectionId(clientID) != -1:
 		while(1):
 			vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, 0, vrep.simx_opmode_streaming)
 			vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, 0, vrep.simx_opmode_streaming)	
-	
-			
+				
 	sala_atual+=1
 
