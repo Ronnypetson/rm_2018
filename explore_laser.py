@@ -304,8 +304,14 @@ def salva_dados(x_laser, y_laser, x_robo, y_robo, x_odom, y_odom):
 
 def plotar_mapa():
 	fig = plt.figure()
+
+	ax = plt.Axes(fig, [0., 0., 1., 1.])
+	ax.set_axis_off()
+	fig.add_axes(ax)
+	#ax.imshow(your_image, aspect='normal')
 	plt.scatter(pontos_x, pontos_y, s=0.5)
 	fig.savefig('points_.png')
+
 	line1, = plt.plot(odometria_x, odometria_y, 'r--', label='Odometria')
 	line2, = plt.plot(trajetoria_x, trajetoria_y, 'g', label='Ground-truth')
 	plt.legend(handles=[line1, line2])
@@ -314,7 +320,7 @@ def plotar_mapa():
 	image = cv2.imread('points_.png',0)
 	image = cv2.Canny(image, 50, 100, None, 3)
 	cv2.imwrite('canny_.png',image)
-	lines = cv2.HoughLines(image, 1, np.pi/180, 100, None, 0, 0)[0]
+	lines = cv2.HoughLines(image, 1, np.pi/180, 75, None, 0, 0)[0]
 	destine = image #np.full((image.shape[0],image.shape[1],3),255.0)
 	if lines is not None:
 		for l in lines:
@@ -327,7 +333,7 @@ def plotar_mapa():
 			pt1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
 			pt2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
 			cv2.line(destine, pt1, pt2, (255,0,0), 1)
-	cv2.imwrite('hough_lines_map.jpg',destine)
+	cv2.imwrite('hough_lines_map.jpg',cv2.bitwise_not(destine))
 
 display = False
 localizacao = localization.localizacao()
