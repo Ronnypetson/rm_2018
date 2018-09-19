@@ -320,20 +320,23 @@ def plotar_mapa():
 	image = cv2.imread('points_.png',0)
 	image = cv2.Canny(image, 50, 100, None, 3)
 	cv2.imwrite('canny_.png',image)
-	lines = cv2.HoughLines(image, 1, np.pi/180, 75, None, 0, 0)[0]
-	destine = image #np.full((image.shape[0],image.shape[1],3),255.0)
+	lines = cv2.HoughLinesP(image, 1, np.pi/180, 50, 50, 20)[0]
+	print(len(lines))
+	destine = np.full((image.shape[0],image.shape[1],3),255.0)
 	if lines is not None:
-		for l in lines:
-			rho = l[0]
-			theta = l[1]
-			a = math.cos(theta)
-			b = math.sin(theta)
-			x0 = a * rho
-			y0 = b * rho
-			pt1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
-			pt2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
-			cv2.line(destine, pt1, pt2, (255,0,0), 1)
-	cv2.imwrite('hough_lines_map.jpg',cv2.bitwise_not(destine))
+		for x1,y1,x2,y2 in lines:
+			cv2.line(destine,(x1,y1),(x2,y2),(255,0,0),1)
+		#for l in lines:
+			#rho = l[0]
+			#theta = l[1]
+			#a = math.cos(theta)
+			#b = math.sin(theta)
+			#x0 = a * rho
+			#y0 = b * rho
+			#pt1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
+			#pt2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
+			#cv2.line(destine, pt1, pt2, (255,0,0), 1)
+	cv2.imwrite('hough_lines_map.jpg',destine)
 
 display = False
 localizacao = localization.localizacao()
