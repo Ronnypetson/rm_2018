@@ -162,3 +162,4 @@ while vrep.simxGetConnectionId(clientID) != -1:
   else:
     vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, 0.60*vLeft, vrep.simx_opmode_streaming)
     vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, 0.60*vRight, vrep.simx_opmode_streaming)
+

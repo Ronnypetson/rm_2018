@@ -39,7 +39,7 @@ class localizacao(Thread):
 			gyro_z = vrep.simxGetFloatSignal(clientID,'gyroZ', vrep.simx_opmode_streaming)
 			data = [gyro_x, gyro_y, gyro_z]
 		return data
-		
+	
 	def update(self):
 		global thetaDir, thetaEsq, thetaDirAnt, thetaEsqAnt, xpos, ypos, theta, Dr, Dl
 

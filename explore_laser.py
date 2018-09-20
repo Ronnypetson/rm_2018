@@ -132,8 +132,8 @@ def local2global(x_local, y_local, x, y, theta):
 					 [0,									 0, 					 1]]
 	T = np.matmul(T_trans, T_rot)
 
-	pos = np.matmul(T, np.transpose([x_local, y_local,1.0]))
-	return pos
+	pos = np.matmul(T, np.transpose([x_local, y_local,1.0])) # x_, y_, 1
+	return pos # pontosGlobal[j] = local2global(lrf[i],lrf[i+1],coord_robo[0],coord_robo[1],angulo)
 
 
 def convert_laser(dist):
@@ -162,7 +162,6 @@ def convert_laser(dist):
 			x_global.append(pos[0])
 			y_global.append(pos[1])
 	return [x_global, y_global]
-	
 
 def get_angulo_alvo(x_robo, y_robo, ang_robo, x_alvo, y_alvo):
 	tolerancia = 0.2
@@ -184,8 +183,7 @@ def get_pos_atual(handle):
 def get_ang_atual(handle):
 	code, ang = vrep.simxGetObjectOrientation(clientID, handle, -1, vrep.simx_opmode_streaming)
 	while(code != vrep.simx_return_ok):
-		code, ang = vrep.simxGetObjectOrientation(clientID, handle, -1, vrep.simx_opmode_streaming)
-		
+		code, ang = vrep.simxGetObjectOrientation(clientID, handle, -1, vrep.simx_opmode_streaming)		
 	return ang[2]
 
 def virar(angulo):
@@ -308,7 +306,6 @@ def plotar_mapa():
 	ax = plt.Axes(fig, [0., 0., 1., 1.])
 	ax.set_axis_off()
 	fig.add_axes(ax)
-	#ax.imshow(your_image, aspect='normal')
 	plt.scatter(pontos_x, pontos_y, s=0.5)
 	fig.savefig('points_.png')
 
@@ -320,22 +317,13 @@ def plotar_mapa():
 	image = cv2.imread('points_.png',0)
 	image = cv2.Canny(image, 50, 100, None, 3)
 	cv2.imwrite('canny_.png',image)
-	lines = cv2.HoughLinesP(image, 1, np.pi/180, 50, 50, 20)[0]
-	print(len(lines))
+	lines = cv2.HoughLinesP(image, 1, np.pi/180, 50, 100, 10)[0]
+
 	destine = np.full((image.shape[0],image.shape[1],3),255.0)
 	if lines is not None:
 		for x1,y1,x2,y2 in lines:
 			cv2.line(destine,(x1,y1),(x2,y2),(255,0,0),1)
-		#for l in lines:
-			#rho = l[0]
-			#theta = l[1]
-			#a = math.cos(theta)
-			#b = math.sin(theta)
-			#x0 = a * rho
-			#y0 = b * rho
-			#pt1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
-			#pt2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
-			#cv2.line(destine, pt1, pt2, (255,0,0), 1)
+
 	cv2.imwrite('hough_lines_map.jpg',destine)
 
 display = False
