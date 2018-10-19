@@ -70,13 +70,10 @@ goToGoal_sim = ctrl.ControlSystemSimulation(goToGoal_ctrl)
 
 # Pass inputs to the ControlSystem using Antecedent labels with Pythonic API
 # Note: if you like passing many inputs all at once, use .inputs(dict_of_data)
-goToGoal_sim.input['distance'] = 2.0
-goToGoal_sim.input['angular distance'] = 50.0
-
-# Crunch the numbers
-goToGoal_sim.compute()
-
-# Visualize the output of the simulation
-print(goToGoal_sim.output)
-#tip.view(sim=tipping)
+def get_control(dist, ang_dist):
+    goToGoal_sim.input['distance'] = dist
+    goToGoal_sim.input['angular distance'] = ang_dist
+    goToGoal_sim.compute()
+    print(goToGoal_sim.output)
+    return goToGoal_sim.output
 
