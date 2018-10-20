@@ -281,7 +281,7 @@ def angle(v1,v2):
 	rot_theta = np.array([[np.cos(theta),-np.sin(theta)],[np.sin(theta),np.cos(theta)]])
 	theta = theta*180.0/math.pi
 	theta = (360.0+theta)%360.0
-	if abs(np.dot( np.dot(rot_theta,v1_u), v2_u )) > 1e-3:
+	if abs(np.dot(np.dot(rot_theta,v2_u),v1_u)-1.0) > 1e-2:
 		theta = 360.0 - theta
 	return theta
 ###
@@ -289,7 +289,7 @@ def angle(v1,v2):
 display = False
 localizacao = localization.localizacao()
 localization.iniciar(clientID)
-goal = np.array([-2.0, -4.0])
+goal = np.array([-5, 0.2])
 #------------------------------ Loop principal ----------------------------
 while vrep.simxGetConnectionId(clientID) != -1:
 	current_position = np.array(get_pos_atual()[:-1])
