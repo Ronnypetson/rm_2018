@@ -8,13 +8,13 @@ distance = ctrl.Antecedent(np.arange(0, 20, 0.5), 'distance') # em metros
 angular_distance = ctrl.Antecedent(np.arange(0, 360, 1), 'angular distance') # graus ou radianos; angulo entre (Robot-Goal) e a orientação do robô (deve ser próximo de 180 graus)
 
 # Consequents
-right_wheel = ctrl.Consequent(np.arange(0, 5, 0.5), 'right wheel speed') # velocidade (angular ??) na roda direita
-left_wheel = ctrl.Consequent(np.arange(0, 5, 0.5), 'left wheel speed') # velocidade na roda esquerda
+right_wheel = ctrl.Consequent(np.arange(0, 4, 0.5), 'right wheel speed') # velocidade (angular ??) na roda direita
+left_wheel = ctrl.Consequent(np.arange(0, 4, 0.5), 'left wheel speed') # velocidade na roda esquerda
 
 # Membership functions for distance
 distance['none'] = fuzz.trimf(distance.universe, [0, 0, 0.1])
-distance['small'] = fuzz.trimf(distance.universe, [0, 0, 1.5])
-distance['medium'] = fuzz.trapmf(distance.universe, [1, 2, 2, 3])
+distance['small'] = fuzz.trimf(distance.universe, [0, 0.2, 0.6])
+distance['medium'] = fuzz.trapmf(distance.universe, [0.5, 1.5, 2, 3])
 distance['big'] = fuzz.trapmf(distance.universe, [2.5, 5, 20, 20])
 
 # Membership for angular distance
@@ -26,12 +26,12 @@ angular_distance['small from right'] = fuzz.trimf(angular_distance.universe, [33
 # Membership for right_wheel
 right_wheel['zero'] = fuzz.trimf(right_wheel.universe, [0, 0, 0])
 right_wheel['low'] = fuzz.trimf(right_wheel.universe, [0, 0, 1.5])
-right_wheel['high'] = fuzz.trapmf(right_wheel.universe, [1, 2.5, 5, 5])
+right_wheel['high'] = fuzz.trapmf(right_wheel.universe, [1, 2, 3, 4])
 
 # Membership for left_wheel
 left_wheel['zero'] = fuzz.trimf(left_wheel.universe, [0, 0, 0])
 left_wheel['low'] = fuzz.trimf(left_wheel.universe, [0, 0, 1.5])
-left_wheel['high'] = fuzz.trapmf(left_wheel.universe, [1, 2.5, 5, 5])
+left_wheel['high'] = fuzz.trapmf(left_wheel.universe, [1, 2, 3, 4])
 
 # Visualize membership
 #distance.view()
@@ -52,14 +52,23 @@ rules['turn_left_1'] = ctrl.Rule((distance['big'] | distance['medium']) & angula
 rules['turn_right_0'] = ctrl.Rule((distance['big'] | distance['medium']) & angular_distance['smaller from right'] & (~angular_distance['small from right']), right_wheel['low'])
 rules['turn_right_1'] = ctrl.Rule((distance['big'] | distance['medium']) & angular_distance['smaller from right'] & (~angular_distance['small from right']), left_wheel['high'])
 
-rules['turn_left_slowly_0'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['small from left'], right_wheel['low'])
-rules['turn_left_slowly_1'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['small from left'], left_wheel['zero'])
+rules['turn_left_2'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['small from left'], right_wheel['high'])
+rules['turn_left_3'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['small from left'], left_wheel['low'])
 
-rules['turn_right_slowly_0'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['small from right'], right_wheel['zero'])
-rules['turn_right_slowly_1'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['small from right'], left_wheel['low'])
+rules['turn_right_2'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['small from right'], right_wheel['low'])
+rules['turn_right_3'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['small from right'], left_wheel['high'])
 
-rules['follow_0'] = ctrl.Rule(angular_distance['small from right'] | angular_distance['small from left'], right_wheel['low'])
-rules['follow_1'] = ctrl.Rule(angular_distance['small from right'] | angular_distance['small from left'], left_wheel['low'])
+rules['turn_left_standing_0'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['smaller from left'], right_wheel['low'])
+rules['turn_left_standing_1'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['smaller from left'], left_wheel['zero'])
+
+rules['turn_right_standing_0'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['smaller from right'], right_wheel['zero'])
+rules['turn_right_standing_1'] = ctrl.Rule((distance['small'] | distance['medium']) & angular_distance['smaller from right'], left_wheel['low'])
+
+rules['follow_0'] = ctrl.Rule(angular_distance['small from right'] | angular_distance['small from left'], right_wheel['high'])
+rules['follow_1'] = ctrl.Rule(angular_distance['small from right'] | angular_distance['small from left'], left_wheel['high'])
+
+rules['follow_2'] = ctrl.Rule(distance['small'], right_wheel['low'])
+rules['follow_3'] = ctrl.Rule(distance['small'], left_wheel['low'])
 
 #for r in rules:
 #    rules[r].view()
@@ -70,10 +79,10 @@ goToGoal_sim = ctrl.ControlSystemSimulation(goToGoal_ctrl)
 
 # Pass inputs to the ControlSystem using Antecedent labels with Pythonic API
 # Note: if you like passing many inputs all at once, use .inputs(dict_of_data)
-def get_control(dist, ang_dist):
+def get_fuzzy_control(dist, ang_dist):
     goToGoal_sim.input['distance'] = dist
     goToGoal_sim.input['angular distance'] = ang_dist
     goToGoal_sim.compute()
-    print(goToGoal_sim.output)
+    #print(goToGoal_sim.output)
     return goToGoal_sim.output
 
