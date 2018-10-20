@@ -277,21 +277,26 @@ def unit_vector(vector):
 def angle(v1,v2):
 	v1_u = unit_vector(v1)
 	v2_u = unit_vector(v2)
-	return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+	theta = np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+	rot_theta = np.array([[np.cos(theta),-np.sin(theta)],[np.sin(theta),np.cos(theta)]])
+	theta = theta*180.0/math.pi
+	theta = (360.0+theta)%360.0
+	if abs(np.dot( np.dot(rot_theta,v1_u), v2_u )) > 1e-3:
+		theta = 360.0 - theta
+	return theta
 ###
 
 display = False
 localizacao = localization.localizacao()
 localization.iniciar(clientID)
-goal = np.array([2.0, 1.0])
+goal = np.array([-2.0, -4.0])
 #------------------------------ Loop principal ----------------------------
 while vrep.simxGetConnectionId(clientID) != -1:
 	current_position = np.array(get_pos_atual()[:-1])
 	current_angle = ciclo_trig(get_ang_atual())
 	dist = get_dist(current_position,goal)
 	#ang_dist = (np.angle(goal[0]+1j*goal[1])-current_angle)*180.0/math.pi
-	ang_dist = angle(goal-current_position,np.array([math.cos(current_angle),math.sin(current_angle)]))*180.0/math.pi
-	ang_dist = (360.0+ang_dist)%360.0
+	ang_dist = angle(goal-current_position,np.array([math.cos(current_angle),math.sin(current_angle)])) # graus
 	print(dist,ang_dist)
 	#print(current_angle)
 	wheel_speeds = get_fuzzy_control(dist,ang_dist)
