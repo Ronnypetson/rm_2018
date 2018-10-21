@@ -84,5 +84,5 @@ def get_fuzzy_control(dist, ang_dist):
     goToGoal_sim.input['angular distance'] = ang_dist
     goToGoal_sim.compute()
     #print(goToGoal_sim.output)
-    return goToGoal_sim.output
+    return [goToGoal_sim.output['right wheel speed'], goToGoal_sim.output['left wheel speed'],]
 

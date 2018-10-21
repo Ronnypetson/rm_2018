@@ -6,7 +6,7 @@ class avoid_obstacles():
 	def __init__(self):
 		self.NUM_SENSORS = 8
 		self.max_speed = 2.0
-		self.min_obst_dist = 0.05
+		self.min_obst_dist = 0.03
 		self.max_obst_dist = 5.0
 		self.steps = 0.01
 		
@@ -40,7 +40,7 @@ class avoid_obstacles():
 
 		vel_ctrl = ctrl.ControlSystem([rule_l1, rule_l2, rule_l3, rule_r1, rule_r2, rule_r3])
 		self.vel = ctrl.ControlSystemSimulation(vel_ctrl)
-		print('Fuzzy initialized')
+		print('Fuzzy avoid obstacles initialized')
 		
 	def get_vel(self, dist):
 		for i in range(len(dist)):
