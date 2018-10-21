@@ -3,7 +3,7 @@ import sys
 reload(sys)  
 sys.setdefaultencoding('utf8')
 
-import vrep, time, math, avoid_obstacles, goToGoal_fuzzy
+import vrep, time, math, avoid_obstacles, goToGoal_fuzzy, goToGoalPID
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -166,9 +166,13 @@ DIST_TRESHOLD = 0.3
 print('Go to goal com (0) PID ou (1) Fuzzy ?')
 fuzzy = input()
 
+if not fuzzy:
+	go_to_goal = goToGoalPID.GoToGoalPID()
+
+
 #------------------------------ Loop principal ----------------------------
 while vrep.simxGetConnectionId(clientID) != -1:
-	goal = np.array([-5.7, -4.7])
+	goal = np.array([-6.1, -4.3])
 	dist = ler_distancias(handle_sensores)
 	if(dist):
 		'''
@@ -195,10 +199,12 @@ while vrep.simxGetConnectionId(clientID) != -1:
 				ang_dist = angle(goal - current_position, np.array([math.cos(current_angle),math.sin(current_angle)])) # graus
 				#print(distance, ang_dist)
 				vel = goToGoal_fuzzy.get_fuzzy_control(distance, ang_dist)
+			else:
+				current_position = np.array(get_pos_atual()[:-1])
+				current_angle = ciclo_trig(get_ang_atual())
+				vel = go_to_goal.goToGoal(current_position[0], current_position[1], current_angle, goal[0], goal[1])
+				print vel
 
 
 		vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, vel[0], vrep.simx_opmode_streaming)
 		vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, vel[1], vrep.simx_opmode_streaming)		
-		
-
-			

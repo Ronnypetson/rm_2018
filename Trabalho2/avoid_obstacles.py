@@ -5,12 +5,16 @@ from skfuzzy import control as ctrl
 class avoid_obstacles():
 	def __init__(self):
 		self.NUM_SENSORS = 8
-		self.max_speed = 2.0
+		self.max_speed = 5.0
 		self.min_obst_dist = 0.03
 		self.max_obst_dist = 5.0
 		self.steps = 0.01
 		
 	def init_fuzzy(self):
+		'''
+			Call this function to initialize the fuzzy control
+		'''
+	
 		distance=[]
 		for i in range(0, self.NUM_SENSORS):
 			distance.append(ctrl.Antecedent(np.arange(0, self.max_obst_dist, self.steps), 'distance'+str(i)))
@@ -43,6 +47,12 @@ class avoid_obstacles():
 		print('Fuzzy avoid obstacles initialized')
 		
 	def get_vel(self, dist):
+		'''
+			Returns the speed in both wheels
+			arg: distance in all 8 sensors		
+			return: velocity vector (right and left respectively)
+		'''
+	
 		for i in range(len(dist)):
 			self.vel.input['distance'+str(i)] = dist[i]
 
