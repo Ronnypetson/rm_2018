@@ -9,7 +9,7 @@ class GoToGoalPID:
 	KpP = 2
 	KiP = KpP / 10.0
 	KdP = KpP * 5
-	epsilonP = 0.01
+	epsilonP = 0.1
 
 	def __init__(self):
 		self.errorA = self.epsilonA
@@ -43,20 +43,22 @@ class GoToGoalPID:
 		y1 = roboY-goalY
 		x1 = roboX-goalX
 		roboA = self.normAngle(roboA)
-		angGoal = abs(math.degrees(self.normAngle(math.pi + math.atan2(y1, x1))))
-		sig = -1 if angGoal > 90 and angGoal < 270 else 1
+		angGoal = self.normAngle(math.pi + math.atan2(y1, x1))
+		deltaA = math.degrees(math.atan2(math.sin(angGoal-roboA), math.cos(angGoal-roboA)))
+		sig = -1 if abs(deltaA) > 100 else 1
 		self.errorP = sig * math.sqrt( ((goalX-roboX)**2) + ((goalY-roboY)**2) )
-		#self.i_errorP = self.i_errorP + self.errorP
 		self.diff_errorP = self.errorP - self.old_errorP
-		u = (self.KpP * self.errorP) + (self.KdP * self.diff_errorP) #+ (self.KiP * self.i_errorP)
+		u = (self.KpP * self.errorP) + (self.KdP * self.diff_errorP)
 		self.old_errorP = self.errorP
 		return [u,u]
 
-
 	def goToGoal(self,roboX,roboY,roboA,goalX,goalY):
 		if abs(self.errorA) < self.epsilonA:
-			#print("Position ", self.errorP)
-			return self.goToPosition(roboX,roboY,roboA,goalX,goalY)
+			if(abs(self.errorP) < self.epsilonP):
+				return [0,0]
+			else:
+				#print("Position ", self.errorP)
+				return self.goToPosition(roboX,roboY,roboA,goalX,goalY)
 		else:
 			#print("Angle ", self.errorA)
 			return self.goToAngle(roboX,roboY,roboA,goalX,goalY)
