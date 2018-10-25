@@ -58,7 +58,7 @@ class wall_follow_fuzzy():
 
         rules['go on 0'] = ctrl.Rule(left_wall_dist['medium'] | right_wall_dist['medium'], v_left_wheel['positive'])
         rules['go on 1'] = ctrl.Rule(left_wall_dist['medium'] | right_wall_dist['medium'], v_right_wheel['positive'])
-        rules['go on 2'] = ctrl.Rule(left_wall_dist['extra-large'] & right_wall_dist['extra-large'], v_right_wheel['positive'])
+        rules['go on 2'] = ctrl.Rule(left_wall_dist['extra-large'] & right_wall_dist['extra-large'], v_left_wheel['positive']) # O erro era aqui, pois estava v_right_wheel
         rules['go on 3'] = ctrl.Rule(left_wall_dist['extra-large'] & right_wall_dist['extra-large'], v_right_wheel['positive'])
 
         # Sistema de controle e simulação
