@@ -2,14 +2,14 @@ import math
 
 class GoToGoalPID:
 
-	KpA = 0.5
+	KpA = 1.5
 	KiA = KpA / 10.0
 	KdA = KpA * 5
-	epsilonA = 0.001
-	KpP = 2
-	KiP = KpP / 10.0
+	epsilonA = 0.01
+	KpP = 0.7
 	KdP = KpP * 5
 	epsilonP = 0.1
+	interationStop = 0
 
 	def __init__(self):
 		self.errorA = self.epsilonA
@@ -34,10 +34,7 @@ class GoToGoalPID:
 		self.diff_errorA = self.errorA - self.old_errorA
 		u = (self.KpA * self.errorA) + (self.KiA * self.i_errorA) + (self.KdA * self.diff_errorA)
 		self.old_errorA = self.errorA;
-		if u >= 0:
-			return [u,0]
-		else:
-			return [0,-u]
+		return [u,-u]
 
 	def goToPosition(self,roboX,roboY,roboA,goalX,goalY):
 		y1 = roboY-goalY
@@ -53,12 +50,12 @@ class GoToGoalPID:
 		return [u,u]
 
 	def goToGoal(self,roboX,roboY,roboA,goalX,goalY):
-		if abs(self.errorA) < self.epsilonA:
+		if abs(math.degrees(self.errorA)) < self.epsilonA:
 			if(abs(self.errorP) < self.epsilonP):
 				return [0,0]
 			else:
 				#print("Position ", self.errorP)
 				return self.goToPosition(roboX,roboY,roboA,goalX,goalY)
 		else:
-			#print("Angle ", self.errorA)
+			#print("Angle ", math.degrees(self.errorA))
 			return self.goToAngle(roboX,roboY,roboA,goalX,goalY)

@@ -60,6 +60,17 @@ class wall_follow_fuzzy():
         rules['go on 1'] = ctrl.Rule(left_wall_dist['medium'] | right_wall_dist['medium'], v_right_wheel['positive'])
         rules['go on 2'] = ctrl.Rule(left_wall_dist['extra-large'] & right_wall_dist['extra-large'], v_left_wheel['positive']) # O erro era aqui, pois estava v_right_wheel
         rules['go on 3'] = ctrl.Rule(left_wall_dist['extra-large'] & right_wall_dist['extra-large'], v_right_wheel['positive'])
+        
+        #Para usar essas rules, é preciso comentar as rules turn left/right *
+        #rules['follow left wall 0'] = ctrl.Rule(left_wall_dist['small'], v_left_wheel['positive'])
+        #rules['follow left wall 1'] = ctrl.Rule(left_wall_dist['small'], v_right_wheel['negative'])
+        #rules['follow left wall 2'] = ctrl.Rule(left_wall_dist['large'], v_left_wheel['negative'])
+        #rules['follow left wall 3'] = ctrl.Rule(left_wall_dist['large'], v_right_wheel['positive'])
+
+        #rules['follow right wall 0'] = ctrl.Rule(right_wall_dist['small'], v_left_wheel['negative'])
+        #rules['follow right wall 1'] = ctrl.Rule(right_wall_dist['small'], v_right_wheel['positive'])
+        #rules['follow right wall 2'] = ctrl.Rule(right_wall_dist['large'], v_left_wheel['positive'])
+        #rules['follow right wall 3'] = ctrl.Rule(right_wall_dist['large'], v_right_wheel['negative'])
 
         # Sistema de controle e simulação
         sim_ctrl = ctrl.ControlSystem([rules[key] for key in rules])

@@ -17,16 +17,9 @@ RAIO_ROBO = 0.455/2
 ang_ultrassom = [90, 50, 30, 10, -10, -30, -50, -90]
 
 reference = 0.5
+Kp = 10
+min_speed = 1
 
-Kp = 1
-
-# parede à esquerda
-#Kp1_esq = 0.5    # motor esquerdo, 
-#Kp2_esq = 1   # motor direito
-
-# parede à direita
-#Kp1_dir = 1   # motor esquerdo,
-#Kp2_dir = 0.5    # motor direito
 
 #---------------------Conecta no servidor---------------------------------
 
@@ -129,13 +122,6 @@ def salva_dados(dist, x_robo, y_robo, x_odom, y_odom, ang_robo):
 	odometria_x.append(x_odom)
 	odometria_y.append(y_odom)		
 
-def front_obstacle():
-    dist = ler_distancias(handle_sensores)
-    if(dist):
-        if(min(dist[3],dist[4]) <= reference): # dist[2], ,dist[5]
-            return True
-        else:
-            return False
 
 def left_side_obstacle():
     dist = ler_distancias(handle_sensores)
@@ -145,40 +131,25 @@ def left_side_obstacle():
         else:
             return False
 
-def turn_left():
+def left_wall_follow():
     dist = ler_distancias(handle_sensores)
     if(dist):
-        measured = dist[7]
-        error = abs(reference - measured)
+        measured = min(dist[0],dist[1])
+        error = reference - measured
         u = Kp * error
         vel = u
+        vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, (min_speed - vel) , vrep.simx_opmode_streaming)
+        vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, (min_speed + vel), vrep.simx_opmode_streaming)
         
-        vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, 0.5+vel , vrep.simx_opmode_streaming)
-        vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, 0.5-vel , vrep.simx_opmode_streaming)
-
-def turn_right():
+def right_wall_follow():
     dist = ler_distancias(handle_sensores)
     if(dist):
-        measured = dist[0]
-        error = abs(reference - measured)
+        measured = min(dist[6],dist[7])
+        error = reference - measured
         u = Kp * error
         vel = u
-        
-        vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, 0.5-vel , vrep.simx_opmode_streaming)
-        vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, 0.5+vel , vrep.simx_opmode_streaming)
-
-def wall_follow():
-    dist = ler_distancias(handle_sensores)
-    if(dist):
-        measured = dist[0]
-        error = abs(reference - measured)
-        u = Kp * error
-        vel = u
-        #if(vel<0.5):
-        #    vel=0.5
-        vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, 1 + vel , vrep.simx_opmode_streaming)
-        vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, 1 - vel, vrep.simx_opmode_streaming)
-    
+        vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, (min_speed + vel) , vrep.simx_opmode_streaming)
+        vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, (min_speed - vel), vrep.simx_opmode_streaming)
 
 
 localizacao = localization.localizacao()
@@ -189,34 +160,15 @@ y_odom = []
 #------------------------------ Loop principal ----------------------------
 while vrep.simxGetConnectionId(clientID) != -1:
     while(1):
-        dist = ler_distancias(handle_sensores)
-        #if(dist):
-          #  measured = min(dist[0], dist[7])
-          #  print(measured, reference - measured) # reference - 
-          #  if(dist[0] < dist[7]): # Parede à esquerda
-          #      error = min((reference - measured),0.5) # + abs(1.0 - vrep.simxGetJointTargetVelocity(clientID, handle_motor_dir))
-          #      u1 = Kp1_esq * error
-          #      u2 = Kp2_esq * error
-          #      vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, u1 , vrep.simx_opmode_streaming)
-          #      vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, u2, vrep.simx_opmode_streaming)
-          #  else:
-          #      error = min((reference - measured),0.5)
-          #      u1 = Kp1_dir * error
-          #      u2 = Kp2_dir * error
-          #      vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, u1 , vrep.simx_opmode_streaming)
-          #      vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, u2, vrep.simx_opmode_streaming)
-    
-        #if((front_obstacle() == False ) and (left_side_obstacle() == True)):
-          
-        #    wall_follow()
+        if(left_side_obstacle()):
         
-        if left_side_obstacle() == False and front_obstacle() == False:#((front_obstacle() == False ) ): # and (left_side_obstacle() == False)
-            
-            turn_left()
-            #pass  
+            left_wall_follow()
+        
         else:
-            #pass
-            turn_right()
+        
+            right_wall_follow()
+        
+           
             
 #plt.plot(trajetoria_x, trajetoria_y, 'g', label='Ground-truth')
 	
