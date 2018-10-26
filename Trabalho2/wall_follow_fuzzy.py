@@ -6,7 +6,7 @@ from skfuzzy import control as ctrl
 class wall_follow_fuzzy():
     def __init__(self):
         self.max_speed = 2.0
-        self.min_wall_dist = 0
+        self.min_wall_dist = 0.0
         self.max_wall_dist = 6.0
         self.steps = 0.1
 
@@ -26,14 +26,14 @@ class wall_follow_fuzzy():
         # Membership functions for left_wall_distance
         left_wall_dist['small']       = fuzz.trimf(left_wall_dist.universe, [0, 0.2, 0.4])
         left_wall_dist['medium']      = fuzz.trapmf(left_wall_dist.universe, [0.3, 0.4, 0.5, 0.6])
-        left_wall_dist['large']       = fuzz.trimf(left_wall_dist.universe, [0.55, 0.8, 1.5])
-        left_wall_dist['extra-large'] = fuzz.trimf(left_wall_dist.universe, [1, 6.1, 6.1])
+        left_wall_dist['large']       = fuzz.trimf(left_wall_dist.universe, [0.55, 0.7, 0.9])
+        left_wall_dist['extra-large'] = fuzz.trimf(left_wall_dist.universe, [0.8, 6.0, 6.0])
 
         # Membership functions for right_wall_distance
         right_wall_dist['small']       = fuzz.trimf(right_wall_dist.universe, [0, 0.2, 0.4])
         right_wall_dist['medium']      = fuzz.trapmf(right_wall_dist.universe, [0.3, 0.4, 0.5, 0.6])
-        right_wall_dist['large']       = fuzz.trimf(right_wall_dist.universe, [0.55, 0.8, 1.5])
-        right_wall_dist['extra-large'] = fuzz.trimf(right_wall_dist.universe, [1, 6.1, 6.1])
+        right_wall_dist['large']       = fuzz.trimf(right_wall_dist.universe, [0.55, 0.8, 0.9])
+        right_wall_dist['extra-large'] = fuzz.trimf(right_wall_dist.universe, [0.8, 6.0, 6.0])
 
         # Membership functions for v_left_wheel
         v_left_wheel['positive'] = fuzz.trimf(v_left_wheel.universe, [0.0, self.max_speed-0.1, self.max_speed-0.1])

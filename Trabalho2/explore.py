@@ -1,4 +1,9 @@
-import vrep, time, cv2, math, localization
+# encoding=utf8  
+import sys  
+reload(sys)  
+sys.setdefaultencoding('utf8')
+
+import vrep, time, math, localization, wall_follow_fuzzy
 import numpy as np
 import matplotlib.pyplot as plt
 from goToGoal_fuzzy import *
@@ -227,7 +232,6 @@ def mover_para(x,y):
 				
 			if(abs(get_pos_atual()[0]-x) < 0.1 and abs(get_pos_atual()[1]-y) < 0.1):
 				chegou = True
-				print "chegou"
 				
 			#else:
 			#	print str(get_pos_atual()[0]),",",str(get_pos_atual()[1])
@@ -289,9 +293,24 @@ def angle(v1,v2):
 display = False
 localizacao = localization.localizacao()
 localization.iniciar(clientID)
+
+wall_follow = wall_follow_fuzzy.wall_follow_fuzzy()
+wall_follow.init_fuzzy()
+
 goal = np.array([-5, 0.2])
+
+
 #------------------------------ Loop principal ----------------------------
 while vrep.simxGetConnectionId(clientID) != -1:
+
+	
+	dist = ler_distancias(handle_sensores)
+	if(dist):
+		left_speed, right_speed = wall_follow.get_vel(dist[0], dist[7])
+	
+		vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, left_speed, vrep.simx_opmode_streaming)
+		vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, right_speed, vrep.simx_opmode_streaming)
+	"""
 	current_position = np.array(get_pos_atual()[:-1])
 	current_angle = ciclo_trig(get_ang_atual())
 	dist = get_dist(current_position,goal)
@@ -308,7 +327,6 @@ while vrep.simxGetConnectionId(clientID) != -1:
 	#if(sala_atual == 1):
 		#for pos in sala_1:
 		#	mover_para(pos[0], pos[1])
-	"""
 	elif(sala_atual == 2):
 		for pos in sala_2:
 			mover_para(pos[0], pos[1])
