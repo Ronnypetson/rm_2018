@@ -3,7 +3,7 @@ import sys
 reload(sys)  
 sys.setdefaultencoding('utf8')
 
-import vrep, time, math, avoid_obstacles, goToGoal_fuzzy, goToGoalPID
+import vrep, time, math, localization, avoid_obstacles, goToGoal_fuzzy, goToGoalPID, follow_wall_PID, wall_follow_fuzzy
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -151,8 +151,14 @@ def unit_vector(vector):
 	return vector / np.linalg.norm(vector)
 
 
+localizacao = localization.localizacao()
+localization.iniciar(clientID)
+
 avoid_obst = avoid_obstacles.avoid_obstacles()
 avoid_obst.init_fuzzy()
+
+wall_follow = wall_follow_fuzzy.wall_follow_fuzzy()
+wall_follow.init_fuzzy()
 
 behaviour = {
 	'go_to_goal': 2,		#Saida de nivel mais alto
@@ -161,50 +167,64 @@ behaviour = {
 }
 
 action=0
-DIST_TRESHOLD = 0.3
+OBST_TRESHOLD = 0.3
+WALL_TRESHOLD = 0.4
 
 print('Go to goal com (0) PID ou (1) Fuzzy ?')
-fuzzy = input()
-
+#fuzzy = input()
+fuzzy=1
 if not fuzzy:
 	go_to_goal = goToGoalPID.GoToGoalPID()
 
 
 #------------------------------ Loop principal ----------------------------
 while vrep.simxGetConnectionId(clientID) != -1:
-	goal = np.array([-6.1, -4.3])
+	goal = np.array([-5.4, 2.2])
 	dist = ler_distancias(handle_sensores)
-	if(dist):
+	if(dist and len(dist)==8):
+
 		'''
 			Coordenacao comeca aqui!
 		'''
 		action = behaviour['go_to_goal']
 		
 		#Se houver alguma distancia muito pequena a saida mais baixa e ativada
-		for d in dist:
-			if d < DIST_TRESHOLD:
-				action = behaviour['avoid_obstacles']
-				break
-		
-		print action
-		
+		if min(dist) < OBST_TRESHOLD:
+			action = behaviour['avoid_obstacles']
+		elif min(dist[0], dist[1], dist[6], dist[7]) < WALL_TRESHOLD:
+			action = behaviour['follow_wall']		
+				
+		#print action
+
 		#Aplicando velocidades nas rodas de acordo com o sinal de controle
 		if(action == behaviour['avoid_obstacles']):
 			vel = avoid_obst.get_vel(dist)
+			
+		elif(action == behaviour['follow_wall']):
+			vel_left, vel_right = wall_follow.get_vel(dist[0], dist[7])
+			vel = [vel_left, vel_right]
+				
 		elif(action == behaviour['go_to_goal']):
+			current_position = np.array(get_pos_atual()[:-1])
+			#x, y = localizacao.getPosicao()
+			#current_position=[x,y]
+			
 			if(fuzzy):
-				current_position = np.array(get_pos_atual()[:-1])
 				current_angle = ciclo_trig(get_ang_atual())
+				#current_angle = localizacao.getOrientacao()
 				distance = get_dist(current_position, goal)
 				ang_dist = angle(goal - current_position, np.array([math.cos(current_angle),math.sin(current_angle)])) # graus
 				#print(distance, ang_dist)
 				vel = goToGoal_fuzzy.get_fuzzy_control(distance, ang_dist)
 			else:
-				current_position = np.array(get_pos_atual()[:-1])
-				current_angle = ciclo_trig(get_ang_atual())
+				current_angle = get_ang_atual()
 				vel = go_to_goal.goToGoal(current_position[0], current_position[1], current_angle, goal[0], goal[1])
-				print vel
-
-
+				#print vel
+		
+			
 		vrep.simxSetJointTargetVelocity(clientID, handle_motor_dir, vel[0], vrep.simx_opmode_streaming)
 		vrep.simxSetJointTargetVelocity(clientID, handle_motor_esq, vel[1], vrep.simx_opmode_streaming)		
+		
+		thetaDir = vrep.simxGetJointPosition(clientID, handle_motor_dir, vrep.simx_opmode_streaming)[1]
+		thetaEsq = vrep.simxGetJointPosition(clientID, handle_motor_esq, vrep.simx_opmode_streaming)[1]
+		localizacao.setAngulos(thetaDir, thetaEsq)

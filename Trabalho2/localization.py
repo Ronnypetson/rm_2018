@@ -12,8 +12,8 @@ class localizacao(Thread):
 		thetaEsq = 2*math.pi
 		thetaDirAnt = 0
 		thetaEsqAnt = 2*math.pi
-		xpos = -5			#Posicao inicial
-		ypos = 0			
+		xpos = 3.6			#Posicao inicial
+		ypos = 2.0				
 		theta = 0
 		Dr = Dl = 0
 		self.largura = 0.415-0.08
@@ -72,8 +72,8 @@ class localizacao(Thread):
 		theta = theta + (Dr-Dl)/self.largura
 		
 		#theta = theta + (self.get_gyro_data()[2][1])*self.intervalo
-		#if abs(theta) > 2*math.pi:
-		#	theta = 0
+		if abs(theta) > 2*math.pi:
+			theta = 0
 		#print self.get_gyro_data()[2][1]	
 		#print xpos, ypos, theta*180/math.pi
 		
