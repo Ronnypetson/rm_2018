@@ -3,7 +3,7 @@ import sys
 reload(sys)  
 sys.setdefaultencoding('utf8')
 
-import vrep, time, math, localization, avoid_obstacles, goToGoal_fuzzy, goToGoalPID, follow_wall_PID, wall_follow_fuzzy
+import vrep, time, math, localization, avoid_obstacles, goToGoal_fuzzy, goToGoalPID, wall_follow_fuzzy
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -112,17 +112,17 @@ def ler_distancias(sensorHandle):
 
 
 def get_pos_atual():
-	code, position = vrep.simxGetObjectPosition(clientID, handle_robo, -1, vrep.simx_opmode_streaming)
+	code, position = vrep.simxGetObjectPosition(clientID, handle_robo, -1, vrep.simx_opmode_oneshot_wait)
 	
 	while(code != vrep.simx_return_ok):
-		code, position = vrep.simxGetObjectPosition(clientID, handle_robo, -1, vrep.simx_opmode_streaming)
+		code, position = vrep.simxGetObjectPosition(clientID, handle_robo, -1, vrep.simx_opmode_oneshot_wait)
 
 	return position
 
 def get_ang_atual():
-	code, ang = vrep.simxGetObjectOrientation(clientID, handle_robo, -1, vrep.simx_opmode_streaming)
+	code, ang = vrep.simxGetObjectOrientation(clientID, handle_robo, -1, vrep.simx_opmode_oneshot_wait)
 	while(code != vrep.simx_return_ok):
-		code, ang = vrep.simxGetObjectOrientation(clientID, handle_robo, -1, vrep.simx_opmode_streaming)
+		code, ang = vrep.simxGetObjectOrientation(clientID, handle_robo, -1, vrep.simx_opmode_oneshot_wait)
 		
 	return ang[2]
 
@@ -171,15 +171,15 @@ OBST_TRESHOLD = 0.3
 WALL_TRESHOLD = 0.4
 
 print('Go to goal com (0) PID ou (1) Fuzzy ?')
-#fuzzy = input()
 fuzzy=1
+fuzzy = input()
 if not fuzzy:
 	go_to_goal = goToGoalPID.GoToGoalPID()
 
 
 #------------------------------ Loop principal ----------------------------
 while vrep.simxGetConnectionId(clientID) != -1:
-	goal = np.array([-5.4, 2.2])
+	goal = np.array([2.32, -3.8])
 	dist = ler_distancias(handle_sensores)
 	if(dist and len(dist)==8):
 

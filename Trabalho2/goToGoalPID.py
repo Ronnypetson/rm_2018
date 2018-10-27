@@ -5,10 +5,10 @@ class GoToGoalPID:
 	KpA = 1.5
 	KiA = KpA / 10.0
 	KdA = KpA * 5
-	epsilonA = 0.01
+	epsilonA = 25
 	KpP = 0.7
 	KdP = KpP * 5
-	epsilonP = 0.1
+	epsilonP = 0.01
 	interationStop = 0
 
 	def __init__(self):
@@ -24,12 +24,15 @@ class GoToGoalPID:
 	def normAngle(self, theta):
 		return theta % (2*math.pi)
 
-	def goToAngle(self,roboX,roboY,roboA,goalX,goalY):
+	def calcErrorA(self,roboX,roboY,roboA,goalX,goalY):
 		roboA = self.normAngle(roboA)
 		y1 = roboY-goalY
 		x1 = roboX-goalX
 		angGoal = self.normAngle(math.pi + math.atan2(y1, x1))
 		self.errorA = math.atan2(math.sin(angGoal-roboA), math.cos(angGoal-roboA))
+
+	def goToAngle(self,roboX,roboY,roboA,goalX,goalY):
+		self.calcErrorA(roboX,roboY,roboA,goalX,goalY)
 		self.i_errorA = self.i_errorA + self.errorA
 		self.diff_errorA = self.errorA - self.old_errorA
 		u = (self.KpA * self.errorA) + (self.KiA * self.i_errorA) + (self.KdA * self.diff_errorA)
@@ -51,6 +54,7 @@ class GoToGoalPID:
 
 	def goToGoal(self,roboX,roboY,roboA,goalX,goalY):
 		if abs(math.degrees(self.errorA)) < self.epsilonA:
+			self.calcErrorA(roboX,roboY,roboA,goalX,goalY)
 			if(abs(self.errorP) < self.epsilonP):
 				return [0,0]
 			else:
